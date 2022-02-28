@@ -8,18 +8,16 @@ import (
 )
 
 func notFoundHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusNotFound)
 	fmt.Fprint(w, "请求页面不存在")
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
 	fmt.Fprint(w, "<h1>Hello, 这里是 goblog</h1>")
 }
 
 func aboutHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	fmt.Fprint(w, "此博客是用以记录编程笔记，如您有反馈或建议，请联系 "+
 		"<a href=\"mailto:summer@example.com\">summer@example.com</a>")
 }
@@ -37,6 +35,14 @@ func articlesStoreHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
+//定义路由中间件函数
+func forceHTMLMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		rw.Header().Set("Content-Type", "text/html; charset=utf-8")
+		next.ServeHTTP(rw, r)
+	})
+}
+
 func main() {
 	route := mux.NewRouter()
 	route.HandleFunc("/", homeHandler).Methods("GET").Name("home")
@@ -46,6 +52,8 @@ func main() {
 	route.HandleFunc("/articles", articlesStoreHandler).Methods("POST").Name("article.store")
 	route.NotFoundHandler = http.HandlerFunc(notFoundHandler)
 
+	//添加路由中间件
+	route.Use(forceHTMLMiddleware)
 	homeURL, _ := route.Get("home").URL()
 	fmt.Println("homeURL=", homeURL)
 
