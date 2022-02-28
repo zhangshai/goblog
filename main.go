@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/mux"
 )
@@ -43,6 +44,17 @@ func forceHTMLMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+//修正错误路由
+func removeTrailingSlash(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			r.URL.Path = strings.TrimSuffix(r.URL.Path, "/")
+		}
+
+		next.ServeHTTP(rw, r)
+	})
+}
+
 func main() {
 	route := mux.NewRouter()
 	route.HandleFunc("/", homeHandler).Methods("GET").Name("home")
@@ -59,5 +71,5 @@ func main() {
 
 	articleURL, _ := route.Get("articles.show").URL("id", "23")
 	fmt.Println(articleURL)
-	http.ListenAndServe(":3000", route)
+	http.ListenAndServe(":3000", removeTrailingSlash(route))
 }
