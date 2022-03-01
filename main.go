@@ -8,6 +8,9 @@ import (
 	"github.com/gorilla/mux"
 )
 
+//定义路由
+var route = mux.NewRouter()
+
 func notFoundHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotFound)
 	fmt.Fprint(w, "请求页面不存在")
@@ -35,6 +38,25 @@ func articlesStoreHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "创建新的文章")
 
 }
+func articlesCreateHandler(w http.ResponseWriter, r *http.Request) {
+	html := `
+	<!DOCTYPE html>
+	<html lang="en">
+	<head>
+		<title>创建文章 —— 我的技术博客</title>
+	</head>
+	<body>
+		<form action="%s" method="post">
+			<p><input type="text" name="title"></p>
+			<p><textarea name="body" cols="30" rows="10"></textarea></p>
+			<p><button type="submit">提交</button></p>
+		</form>
+	</body>
+	</html>
+	`
+	storeURL, _ := route.Get("articles.store").URL()
+	fmt.Fprintf(w, html, storeURL)
+}
 
 //定义路由中间件函数
 func forceHTMLMiddleware(next http.Handler) http.Handler {
@@ -56,20 +78,15 @@ func removeTrailingSlash(next http.Handler) http.Handler {
 }
 
 func main() {
-	route := mux.NewRouter()
 	route.HandleFunc("/", homeHandler).Methods("GET").Name("home")
 	route.HandleFunc("/about", aboutHandler).Methods("GET").Name("about")
 	route.HandleFunc("/articles/{id:[0-9]+}", articlesShowHandler).Methods("GET").Name("articles.show")
 	route.HandleFunc("/articles", articlesIndexHandler).Methods("GET").Name("articles.index")
 	route.HandleFunc("/articles", articlesStoreHandler).Methods("POST").Name("article.store")
+	route.HandleFunc("/articles/create", articlesCreateHandler).Methods("GET").Name("article.create")
 	route.NotFoundHandler = http.HandlerFunc(notFoundHandler)
 
 	//添加路由中间件
 	route.Use(forceHTMLMiddleware)
-	homeURL, _ := route.Get("home").URL()
-	fmt.Println("homeURL=", homeURL)
-
-	articleURL, _ := route.Get("articles.show").URL("id", "23")
-	fmt.Println(articleURL)
 	http.ListenAndServe(":3000", removeTrailingSlash(route))
 }
