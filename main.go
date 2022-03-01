@@ -79,10 +79,43 @@ func aboutHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "此博客是用以记录编程笔记，如您有反馈或建议，请联系 "+
 		"<a href=\"mailto:summer@example.com\">summer@example.com</a>")
 }
+
+type Article struct {
+	Title, Body string
+	ID          int64
+}
+
 func articlesShowHandler(w http.ResponseWriter, r *http.Request) {
+	// 1. 获取 URL 参数
 	vars := mux.Vars(r)
 	id := vars["id"]
-	fmt.Fprint(w, "文章ID"+id)
+
+	// 2. 读取对应的文章数据
+	article := Article{}
+	query := "SELECT * FROM articles where id = ?"
+	err := db.QueryRow(query, id).Scan(&article.ID, &article.Title, &article.Body)
+
+	// 3. 如果出现错误
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// 3.1 数据未找到
+			w.WriteHeader(http.StatusNotFound)
+			fmt.Fprint(w, "404 文章未找到")
+		} else {
+			checkError(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, "500 服务器内部错误")
+		}
+	} else {
+
+		// 4. 读取成功，显示文章
+		tmpl, err := template.ParseFiles("resources/views/articles/show.gohtml")
+		checkError(err)
+
+		err = tmpl.Execute(w, article)
+		checkError(err)
+	}
+
 }
 func articlesIndexHandler(w http.ResponseWriter, r *http.Request) {
 
