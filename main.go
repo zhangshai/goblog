@@ -1,18 +1,54 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"html/template"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 	"unicode/utf8"
 
+	"github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 )
 
 //定义路由
 var route = mux.NewRouter()
+
+//实例化db
+var db *sql.DB
+
+func initDB() {
+	var err error
+	config := mysql.Config{
+		User:                 "root",
+		Passwd:               "123456",
+		Addr:                 "127.0.0.1:3306",
+		Net:                  "tcp",
+		DBName:               "goblog",
+		AllowNativePasswords: true,
+	}
+	db, err = sql.Open("mysql", config.FormatDSN())
+	//记录错误
+	checkError(err)
+	// 设置最大连接数
+	db.SetMaxOpenConns(25)
+	//设置最大空闲连接数
+	db.SetMaxIdleConns(24)
+	//设置每个链接的过期时间
+	db.SetConnMaxLifetime(5 * time.Minute)
+	err = db.Ping()
+	checkError(err)
+}
+
+func checkError(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
+}
 
 type ArticlesFormData struct {
 	Title, Body string
@@ -126,6 +162,7 @@ func removeTrailingSlash(next http.Handler) http.Handler {
 }
 
 func main() {
+	initDB()
 	route.HandleFunc("/", homeHandler).Methods("GET").Name("home")
 	route.HandleFunc("/about", aboutHandler).Methods("GET").Name("about")
 	route.HandleFunc("/articles/{id:[0-9]+}", articlesShowHandler).Methods("GET").Name("articles.show")
