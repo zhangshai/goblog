@@ -44,6 +44,16 @@ func initDB() {
 	checkError(err)
 }
 
+func createTables() {
+	createArticlesSQL := `CREATE TABLE IF NOT EXISTS articles(
+		id bigint(20) PRIMARY KEY AUTO_INCREMENT NOT NULL,
+		title varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+		body longtext COLLATE utf8mb4_unicode_ci
+	); `
+	_, err := db.Exec(createArticlesSQL)
+	checkError(err)
+}
+
 func checkError(err error) {
 	if err != nil {
 		log.Fatal(err)
@@ -163,6 +173,7 @@ func removeTrailingSlash(next http.Handler) http.Handler {
 
 func main() {
 	initDB()
+	createTables()
 	route.HandleFunc("/", homeHandler).Methods("GET").Name("home")
 	route.HandleFunc("/about", aboutHandler).Methods("GET").Name("about")
 	route.HandleFunc("/articles/{id:[0-9]+}", articlesShowHandler).Methods("GET").Name("articles.show")
