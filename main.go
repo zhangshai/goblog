@@ -3,23 +3,25 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"github.com/go-sql-driver/mysql"
-	"github.com/gorilla/mux"
+	"goblog/pkg/logger"
+	"goblog/pkg/route"
+	"goblog/pkg/types"
 	"html/template"
-	"log"
+
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
-)
 
-//定义路由
-var route = mux.NewRouter()
+	"github.com/go-sql-driver/mysql"
+	"github.com/gorilla/mux"
+)
 
 //实例化db
 var db *sql.DB
+var router *mux.Router
 
 func initDB() {
 	var err error
@@ -33,7 +35,7 @@ func initDB() {
 	}
 	db, err = sql.Open("mysql", config.FormatDSN())
 	//记录错误
-	checkError(err)
+	logger.LogError(err)
 	// 设置最大连接数
 	db.SetMaxOpenConns(25)
 	//设置最大空闲连接数
@@ -49,13 +51,7 @@ func createTables() {
 		body longtext COLLATE utf8mb4_unicode_ci
 	); `
 	_, err := db.Exec(createArticlesSQL)
-	checkError(err)
-}
-
-func checkError(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
+	logger.LogError(err)
 }
 
 type ArticlesFormData struct {
@@ -87,9 +83,9 @@ type Article struct {
 //动态添加文章结构体属性方法
 
 func (a Article) Link() string {
-	showURL, err := route.Get("articles.show").URL("id", strconv.FormatInt(a.ID, 10))
+	showURL, err := router.Get("articles.show").URL("id", strconv.FormatInt(a.ID, 10))
 	if err != nil {
-		checkError(err)
+		logger.LogError(err)
 		return ""
 	}
 	return showURL.String()
@@ -105,21 +101,6 @@ func (a Article) Delete() (rowsAffected int64, err error) {
 		return n, nil
 	}
 	return 0, nil
-}
-
-func RouteName2URL(routeName string, pairs ...string) string {
-
-	url, err := route.Get(routeName).URL(pairs...)
-	if err != nil {
-		checkError(err)
-		return ""
-	}
-
-	return url.String()
-}
-
-func Int64ToString(num int64) string {
-	return strconv.FormatInt(num, 10)
 }
 
 func articlesShowHandler(w http.ResponseWriter, r *http.Request) {
@@ -139,7 +120,7 @@ func articlesShowHandler(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNotFound)
 			fmt.Fprint(w, "404 文章未找到")
 		} else {
-			checkError(err)
+			logger.LogError(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprint(w, "500 服务器内部错误")
 		}
@@ -147,13 +128,13 @@ func articlesShowHandler(w http.ResponseWriter, r *http.Request) {
 
 		// 4. 读取成功，显示文章
 		tmpl, err := template.New("show.gohtml").Funcs(template.FuncMap{
-			"RouteName2URL": RouteName2URL,
-			"Int64ToString": Int64ToString,
+			"RouteName2URL": route.Name2URL,
+			"Int64ToString": types.Int64ToString,
 		}).ParseFiles("resources/views/articles/show.gohtml")
-		checkError(err)
+		logger.LogError(err)
 
 		err = tmpl.Execute(w, article)
-		checkError(err)
+		logger.LogError(err)
 	}
 
 }
@@ -162,24 +143,24 @@ func articlesIndexHandler(w http.ResponseWriter, r *http.Request) {
 	// 查询数据
 	query := "select * from articles"
 	rows, err := db.Query(query)
-	checkError(err)
+	logger.LogError(err)
 	defer rows.Close()
 	//遍历数据到结构体数组
 	var articles []Article
 	for rows.Next() {
 		var article Article
 		err := rows.Scan(&article.ID, &article.Title, &article.Body)
-		checkError(err)
+		logger.LogError(err)
 		articles = append(articles, article)
 	}
 	//检查便利错误
 	err = rows.Err()
-	checkError(err)
+	logger.LogError(err)
 	//加载模版
 	tmpl, err := template.ParseFiles("resources/views/articles/index.gohtml")
-	checkError(err)
+	logger.LogError(err)
 	err = tmpl.Execute(w, articles)
-	checkError(err)
+	logger.LogError(err)
 }
 
 func articlesStoreHandler(w http.ResponseWriter, r *http.Request) {
@@ -193,12 +174,12 @@ func articlesStoreHandler(w http.ResponseWriter, r *http.Request) {
 		if lastInsertID > 0 {
 			fmt.Fprint(w, "插入成功，ID 为"+strconv.FormatInt(lastInsertID, 10))
 		} else {
-			checkError(err)
+			logger.LogError(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprint(w, "500 服务器内部错误")
 		}
 	} else {
-		storeURL, _ := route.Get("articles.store").URL()
+		storeURL, _ := router.Get("articles.store").URL()
 		data := ArticlesFormData{
 			Title:  title,
 			Body:   body,
@@ -244,7 +225,7 @@ func saveArticleToDB(title string, body string) (int64, error) {
 }
 
 func articlesCreateHandler(w http.ResponseWriter, r *http.Request) {
-	storeURL, _ := route.Get("articles.store").URL()
+	storeURL, _ := router.Get("articles.store").URL()
 	data := ArticlesFormData{
 		Title:  "",
 		Body:   "",
@@ -272,12 +253,12 @@ func articlesEditHandler(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNotFound)
 			fmt.Fprint(w, "文章不存在")
 		} else {
-			checkError(err)
+			logger.LogError(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprint(w, "服务器内部错误")
 		}
 	} else {
-		updateURL, _ := route.Get("articles.update").URL("id", id)
+		updateURL, _ := router.Get("articles.update").URL("id", id)
 		data := ArticlesFormData{
 			Title:  article.Title,
 			Body:   article.Body,
@@ -285,13 +266,13 @@ func articlesEditHandler(w http.ResponseWriter, r *http.Request) {
 			Errors: nil,
 		}
 		tmpl, err := template.ParseFiles("resources/views/articles/edit.gohtml")
-		checkError(err)
+		logger.LogError(err)
 		err = tmpl.Execute(w, data)
-		checkError(err)
+		logger.LogError(err)
 	}
 }
 func articlesUpdateHandler(w http.ResponseWriter, r *http.Request) {
-	id := getRouteVariable("id", r)
+	id := route.GetRouteVariable("id", r)
 	title := r.PostFormValue("title")
 	body := r.PostFormValue("body")
 	_, err := getArticleByID(id)
@@ -301,7 +282,7 @@ func articlesUpdateHandler(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNotFound)
 			fmt.Fprint(w, "404 文章未找到")
 		} else {
-			checkError(err)
+			logger.LogError(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprint(w, "500 服务器内部错误")
 
@@ -313,24 +294,24 @@ func articlesUpdateHandler(w http.ResponseWriter, r *http.Request) {
 			stmt, err := db.Prepare(query)
 			defer stmt.Close()
 			if err != nil {
-				checkError(err)
+				logger.LogError(err)
 				w.WriteHeader(http.StatusInternalServerError)
 				fmt.Fprint(w, "500 服务器内部错误")
 			}
 			rs, err := stmt.Exec(title, body, id)
 			if err != nil {
-				checkError(err)
+				logger.LogError(err)
 				w.WriteHeader(http.StatusInternalServerError)
 				fmt.Fprint(w, "500 服务器内部错误")
 			}
 			if n, _ := rs.RowsAffected(); n > 0 {
-				showURL, _ := route.Get("articles.show").URL("id", id)
+				showURL, _ := router.Get("articles.show").URL("id", id)
 				http.Redirect(w, r, showURL.String(), http.StatusFound)
 			} else {
 				fmt.Fprint(w, "您没有做任何更改！")
 			}
 		} else {
-			updateURL, _ := route.Get("articles.update").URL("id", id)
+			updateURL, _ := router.Get("articles.update").URL("id", id)
 			data := ArticlesFormData{
 				Title:  title,
 				Body:   body,
@@ -338,35 +319,35 @@ func articlesUpdateHandler(w http.ResponseWriter, r *http.Request) {
 				Errors: errors,
 			}
 			tmpl, err := template.ParseFiles("resources/views/articles/edit.gohtml")
-			checkError(err)
+			logger.LogError(err)
 			err = tmpl.Execute(w, data)
-			checkError(err)
+			logger.LogError(err)
 		}
 	}
 
 }
 
 func articlesDelHandler(w http.ResponseWriter, r *http.Request) {
-	id := getRouteVariable("id", r)
+	id := route.GetRouteVariable("id", r)
 	rows, err := getArticleByID(id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			w.WriteHeader(http.StatusNotFound)
 			fmt.Fprint(w, "404 文章未找到")
 		} else {
-			checkError(err)
+			logger.LogError(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprint(w, "500 服务器内部错误")
 		}
 	}
 	rs, err := rows.Delete()
 	if err != nil {
-		checkError(err)
+		logger.LogError(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, "500 服务器内部错误")
 	} else {
 		if rs > 0 {
-			indexURL, _ := route.Get("articles.index").URL()
+			indexURL, _ := router.Get("articles.index").URL()
 			http.Redirect(w, r, indexURL.String(), http.StatusFound)
 		} else {
 			w.WriteHeader(http.StatusNotFound)
@@ -402,12 +383,6 @@ func getArticleByID(id string) (Article, error) {
 
 }
 
-// 获取路由参数
-func getRouteVariable(parameterName string, r *http.Request) string {
-	vars := mux.Vars(r)
-	return vars[parameterName]
-}
-
 //定义路由中间件函数
 func forceHTMLMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
@@ -430,18 +405,21 @@ func removeTrailingSlash(next http.Handler) http.Handler {
 func main() {
 	initDB()
 	createTables()
-	route.HandleFunc("/", homeHandler).Methods("GET").Name("home")
-	route.HandleFunc("/about", aboutHandler).Methods("GET").Name("about")
-	route.HandleFunc("/articles/{id:[0-9]+}", articlesShowHandler).Methods("GET").Name("articles.show")
-	route.HandleFunc("/articles", articlesIndexHandler).Methods("GET").Name("articles.index")
-	route.HandleFunc("/articles", articlesStoreHandler).Methods("POST").Name("articles.store")
-	route.HandleFunc("/articles/create", articlesCreateHandler).Methods("GET").Name("articles.create")
-	route.HandleFunc("/articles/{id:[0-9]+}/edit", articlesEditHandler).Methods("GET").Name("articles.edit")
-	route.HandleFunc("/articles/{id:[0-9]+}", articlesUpdateHandler).Methods("POST").Name("articles.update")
-	route.HandleFunc("/articles/{id:[0-9]+}/delete", articlesDelHandler).Methods("POST").Name("articles.del")
-	route.NotFoundHandler = http.HandlerFunc(notFoundHandler)
+	route.Initialize()
+	router = route.Route
+
+	router.HandleFunc("/", homeHandler).Methods("GET").Name("home")
+	router.HandleFunc("/about", aboutHandler).Methods("GET").Name("about")
+	router.HandleFunc("/articles/{id:[0-9]+}", articlesShowHandler).Methods("GET").Name("articles.show")
+	router.HandleFunc("/articles", articlesIndexHandler).Methods("GET").Name("articles.index")
+	router.HandleFunc("/articles", articlesStoreHandler).Methods("POST").Name("articles.store")
+	router.HandleFunc("/articles/create", articlesCreateHandler).Methods("GET").Name("articles.create")
+	router.HandleFunc("/articles/{id:[0-9]+}/edit", articlesEditHandler).Methods("GET").Name("articles.edit")
+	router.HandleFunc("/articles/{id:[0-9]+}", articlesUpdateHandler).Methods("POST").Name("articles.update")
+	router.HandleFunc("/articles/{id:[0-9]+}/delete", articlesDelHandler).Methods("POST").Name("articles.del")
+	router.NotFoundHandler = http.HandlerFunc(notFoundHandler)
 
 	//添加路由中间件
-	route.Use(forceHTMLMiddleware)
-	http.ListenAndServe(":3000", removeTrailingSlash(route))
+	router.Use(forceHTMLMiddleware)
+	http.ListenAndServe(":3000", removeTrailingSlash(router))
 }
