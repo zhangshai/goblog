@@ -3,6 +3,8 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/go-sql-driver/mysql"
+	"github.com/gorilla/mux"
 	"html/template"
 	"log"
 	"net/http"
@@ -11,9 +13,6 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
-
-	"github.com/go-sql-driver/mysql"
-	"github.com/gorilla/mux"
 )
 
 //定义路由
@@ -97,6 +96,30 @@ func (a Article) Link() string {
 
 }
 
+func (a Article) Delete() (rowsAffected int64, err error) {
+	rs, err := db.Exec("delete from articles where id=" + strconv.FormatInt(a.ID, 10))
+	if err != nil {
+		return 0, err
+	}
+	if n, _ := rs.RowsAffected(); n > 0 {
+		return n, nil
+	}
+	return 0, nil
+}
+
+func RouteName2URL(routeName string, params ...string) string {
+	url, err := route.Get(routeName).URL(params...)
+	if err != nil {
+		checkError(err)
+		return ""
+	}
+	return url.String()
+}
+
+func Int64ToString(num int64) string {
+	return strconv.FormatInt(num, 10)
+}
+
 func articlesShowHandler(w http.ResponseWriter, r *http.Request) {
 	// 1. 获取 URL 参数
 	vars := mux.Vars(r)
@@ -121,7 +144,10 @@ func articlesShowHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 
 		// 4. 读取成功，显示文章
-		tmpl, err := template.ParseFiles("resources/views/articles/show.gohtml")
+		tmpl, err := template.New("show.gohtml").Funcs(template.FuncMap{
+			"RouteName2URL": RouteName2URL,
+			"Int64ToString": Int64ToString,
+		}).ParseFiles("resources/views/articles/show.gohtml")
 		checkError(err)
 
 		err = tmpl.Execute(w, article)
@@ -318,6 +344,36 @@ func articlesUpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func articlesDelHandler(w http.ResponseWriter, r *http.Request) {
+	id := getRouteVariable("id", r)
+	rows, err := getArticleByID(id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			w.WriteHeader(http.StatusNotFound)
+			fmt.Fprint(w, "404 文章未找到")
+		} else {
+			checkError(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, "500 服务器内部错误")
+		}
+	}
+	rs, err := rows.Delete()
+	if err != nil {
+		checkError(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, "500 服务器内部错误")
+	} else {
+		if rs > 0 {
+			indexURL, _ := route.Get("articles.index").URL()
+			http.Redirect(w, r, indexURL.String(), http.StatusFound)
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+			fmt.Fprint(w, "404 文章未找到")
+		}
+	}
+
+}
+
 //表单验证
 func validateArticleFormData(title, body string) map[string]string {
 	errors := make(map[string]string)
@@ -380,6 +436,7 @@ func main() {
 	route.HandleFunc("/articles/create", articlesCreateHandler).Methods("GET").Name("articles.create")
 	route.HandleFunc("/articles/{id:[0-9]+}/edit", articlesEditHandler).Methods("GET").Name("articles.edit")
 	route.HandleFunc("/articles/{id:[0-9]+}", articlesUpdateHandler).Methods("POST").Name("articles.update")
+	route.HandleFunc("/articles/{id:[0-9]+}/delete", articlesDelHandler).Methods("POST").Name("articles.del")
 	route.NotFoundHandler = http.HandlerFunc(notFoundHandler)
 
 	//添加路由中间件
