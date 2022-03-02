@@ -107,12 +107,14 @@ func (a Article) Delete() (rowsAffected int64, err error) {
 	return 0, nil
 }
 
-func RouteName2URL(routeName string, params ...string) string {
-	url, err := route.Get(routeName).URL(params...)
+func RouteName2URL(routeName string, pairs ...string) string {
+
+	url, err := route.Get(routeName).URL(pairs...)
 	if err != nil {
 		checkError(err)
 		return ""
 	}
+
 	return url.String()
 }
 
