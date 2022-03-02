@@ -85,6 +85,18 @@ type Article struct {
 	ID          int64
 }
 
+//动态添加文章结构体属性方法
+
+func (a Article) Link() string {
+	showURL, err := route.Get("articles.show").URL("id", strconv.FormatInt(a.ID, 10))
+	if err != nil {
+		checkError(err)
+		return ""
+	}
+	return showURL.String()
+
+}
+
 func articlesShowHandler(w http.ResponseWriter, r *http.Request) {
 	// 1. 获取 URL 参数
 	vars := mux.Vars(r)
@@ -119,7 +131,27 @@ func articlesShowHandler(w http.ResponseWriter, r *http.Request) {
 }
 func articlesIndexHandler(w http.ResponseWriter, r *http.Request) {
 
-	fmt.Fprint(w, "访问文章列表")
+	// 查询数据
+	query := "select * from articles"
+	rows, err := db.Query(query)
+	checkError(err)
+	defer rows.Close()
+	//遍历数据到结构体数组
+	var articles []Article
+	for rows.Next() {
+		var article Article
+		err := rows.Scan(&article.ID, &article.Title, &article.Body)
+		checkError(err)
+		articles = append(articles, article)
+	}
+	//检查便利错误
+	err = rows.Err()
+	checkError(err)
+	//加载模版
+	tmpl, err := template.ParseFiles("resources/views/articles/index.gohtml")
+	checkError(err)
+	err = tmpl.Execute(w, articles)
+	checkError(err)
 }
 
 func articlesStoreHandler(w http.ResponseWriter, r *http.Request) {
