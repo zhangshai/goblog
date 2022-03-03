@@ -1,23 +1,14 @@
 package route
 
 import (
-	"goblog/routes"
-	"net/http"
-
 	"github.com/gorilla/mux"
+	"net/http"
 )
-
-// Router 路由对象
-var Route *mux.Router
-
-// Initialize 初始化路由
-func Initialize() {
-	Route = mux.NewRouter()
-	routes.RegisterWebRoutes(Route)
-}
 
 // RouteName2URL 通过路由名称来获取 URL
 func Name2URL(routeName string, pairs ...string) string {
+	// Router 路由对象
+	var Route *mux.Router
 	url, err := Route.Get(routeName).URL(pairs...)
 	if err != nil {
 		// checkError(err)
