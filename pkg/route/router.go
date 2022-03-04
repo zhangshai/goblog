@@ -1,17 +1,27 @@
 package route
 
 import (
-	"github.com/gorilla/mux"
+	"fmt"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
+
+var Route *mux.Router
+
+func SetRoute(r *mux.Router) {
+	Route = r
+}
 
 // RouteName2URL 通过路由名称来获取 URL
 func Name2URL(routeName string, pairs ...string) string {
 	// Router 路由对象
-	var Route *mux.Router
+
+	fmt.Println(Route)
 	url, err := Route.Get(routeName).URL(pairs...)
+
 	if err != nil {
-		// checkError(err)
+		//logger.LogError(err)
 		return ""
 	}
 

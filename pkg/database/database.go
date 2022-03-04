@@ -42,9 +42,6 @@ func initDB() {
 	// 设置每个链接的过期时间
 	DB.SetConnMaxLifetime(5 * time.Minute)
 
-	// 尝试连接，失败会报错
-	err = DB.Ping()
-	logger.LogError(err)
 }
 
 func createTables() {
