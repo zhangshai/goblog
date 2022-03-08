@@ -40,14 +40,18 @@ func (*ArticlesController) Show(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 
+		viewDir := "resources/views"
+		files, err := filepath.Glob(viewDir + "/layouts/*.gohtml")
+		logger.LogError(err)
+		newFiles := append(files, viewDir+"/articles/show.gohtml")
 		// 4. 读取成功，显示文章
 		tmpl, err := template.New("show.gohtml").Funcs(template.FuncMap{
 			"RouteName2URL":  route.Name2URL,
 			"Uint64ToString": types.Uint64ToString,
-		}).ParseFiles("resources/views/articles/show.gohtml")
+		}).ParseFiles(newFiles...)
 		logger.LogError(err)
 
-		err = tmpl.Execute(w, article)
+		err = tmpl.ExecuteTemplate(w, "app", article)
 		logger.LogError(err)
 	}
 
