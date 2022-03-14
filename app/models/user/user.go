@@ -13,3 +13,7 @@ type User struct {
 	// gorm:"-" —— 设置 GORM 在读写时略过此字段，仅用于表单验证
 	PasswordConfirm string `gorm:"-" valid:"password_confirm"`
 }
+
+func (user *User) ComparePassword(password string) bool {
+	return user.Password == password
+}
