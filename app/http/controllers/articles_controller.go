@@ -32,7 +32,7 @@ func (*ArticlesController) Show(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 
-		view.Render(w, _article, "articles.show")
+		view.Render(w, view.D{"Article": _article}, "articles.show")
 	}
 
 }
@@ -47,7 +47,7 @@ func (*ArticlesController) Index(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, "500 服务器内部错误")
 	} else {
-		view.Render(w, articles, "articles.index")
+		view.Render(w, view.D{"Articles": articles}, "articles.index")
 	}
 
 }
@@ -124,7 +124,6 @@ func (*ArticlesController) Update(w http.ResponseWriter, r *http.Request) {
 	title := r.PostFormValue("title")
 	body := r.PostFormValue("body")
 	_article, err := article.Get(id)
-
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			w.WriteHeader(http.StatusNotFound)
