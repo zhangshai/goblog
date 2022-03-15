@@ -44,6 +44,24 @@ func RenderTemplate(w io.Writer, name string, data D, tplFiles ...string) {
 	logger.LogError(err)
 }
 
+//通用消息提示模板
+func MsgTemplate(w io.Writer, data D) {
+	// 4 在 Slice 里新增我们的目标文件
+	name := "common.msg"
+	allFiles := getTemplateFiles("simple")
+
+	// 5 解析所有模板文件
+	tmpl, err := template.New("").
+		Funcs(template.FuncMap{
+			"RouteName2URL": route.Name2URL,
+		}).ParseFiles(allFiles...)
+	logger.LogError(err)
+
+	// 6 渲染模板
+	err = tmpl.ExecuteTemplate(w, name, data)
+	logger.LogError(err)
+}
+
 func getTemplateFiles(tplFiles ...string) []string {
 	// 1 设置模板相对路径
 	viewDir := "resources/views/"

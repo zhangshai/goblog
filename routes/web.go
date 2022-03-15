@@ -40,6 +40,9 @@ func RegisterWebRoutes(r *mux.Router) {
 	r.HandleFunc("/auth/login", auc.Login).Methods("GET").Name("auth.login")
 	r.HandleFunc("/auth/dologin", auc.Dologin).Methods("POST").Name("auth.dologin")
 	r.HandleFunc("/auth/logout", auc.Logout).Methods("POST").Name("auth.logout")
+	r.HandleFunc("/auth/findpass", auc.FindPass).Methods("GET").Name("auth.findpass")
+	r.HandleFunc("/auth/dofindpass", auc.DoFindPass).Methods("POST").Name("auth.dofindpass")
+
 	//r.Use(middlewares.ForceHTML)
 	r.Use(middlewares.StartSession)
 }

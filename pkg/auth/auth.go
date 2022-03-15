@@ -52,6 +52,10 @@ func Logout() {
 	session.Forget("uid")
 }
 
+func Login(_user user.User) {
+	session.Put("uid", _user.GetStringID())
+}
+
 func Check() bool {
 
 	return len(_getUID()) > 0

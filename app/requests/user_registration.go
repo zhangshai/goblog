@@ -51,3 +51,31 @@ func ValidateRegistrationForm(data user.User) map[string][]string {
 
 	return errs
 }
+
+func ValidateMail(email string) map[string][]string {
+	rules := govalidator.MapData{
+		"email": []string{"required", "min:4", "max:30", "email", "must_exists:users,email"},
+	}
+
+	// 3. 定制错误消息
+	messages := govalidator.MapData{
+		"email": []string{
+			"required:Email 为必填项",
+			"min:Email 长度需大于 4",
+			"max:Email 长度需小于 30",
+			"email:Email 格式不正确，请提供有效的邮箱地址",
+		},
+	}
+	data := user.User{
+		Email: email,
+	}
+	opts := govalidator.Options{
+		Data:          &data,
+		Rules:         rules,
+		TagIdentifier: "valid",
+		Messages:      messages,
+	}
+	errs := govalidator.New(opts).ValidateStruct()
+	return errs
+
+}
