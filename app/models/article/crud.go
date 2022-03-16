@@ -19,11 +19,19 @@ func Get(idstr string) (Article, error) {
 
 func GetAll() ([]Article, error) {
 	var articles []Article
-	if err := model.DB.Debug().Preload("User").Find(&articles).Error; err != nil {
+	if err := model.DB.Preload("User").Find(&articles).Error; err != nil {
 		return articles, err
 	}
 	return articles, nil
 
+}
+
+func GetByUserID(uid string) ([]Article, error) {
+	var articles []Article
+	if err := model.DB.Where("user_id = ?", uid).Preload("User").Find(&articles).Error; err != nil {
+		return articles, err
+	}
+	return articles, nil
 }
 
 func (article *Article) Create() (err error) {

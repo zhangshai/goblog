@@ -43,6 +43,9 @@ func RegisterWebRoutes(r *mux.Router) {
 	r.HandleFunc("/auth/findpass", middlewares.Guest(auc.FindPass)).Methods("GET").Name("auth.findpass")
 	r.HandleFunc("/auth/dofindpass", middlewares.Guest(auc.DoFindPass)).Methods("POST").Name("auth.dofindpass")
 
+	// 用户相关
+	uc := new(controllers.UserController)
+	r.HandleFunc("/users/{id:[0-9]+}", uc.Show).Methods("GET").Name("users.show")
 	//r.Use(middlewares.ForceHTML)
 	r.Use(middlewares.StartSession)
 }
