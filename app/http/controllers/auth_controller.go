@@ -1,10 +1,10 @@
 package controllers
 
 import (
-	"fmt"
 	"goblog/app/models/user"
 	"goblog/app/requests"
 	"goblog/pkg/auth"
+	"goblog/pkg/flash"
 	"goblog/pkg/mail"
 	"goblog/pkg/types"
 	"goblog/pkg/view"
@@ -39,6 +39,7 @@ func (*AuthController) DoRegister(w http.ResponseWriter, r *http.Request) {
 
 		if _user.ID > 0 {
 
+			flash.Success("恭喜您注册成功！")
 			// 登录用户并跳转到首页
 			auth.Login(_user)
 			http.Redirect(w, r, "/", http.StatusFound)
@@ -61,6 +62,7 @@ func (*AuthController) Dologin(w http.ResponseWriter, r *http.Request) {
 	password := r.PostFormValue("password")
 	if err := auth.Attempt(email, password); err == nil {
 
+		flash.Success("欢迎回来！")
 		http.Redirect(w, r, "/", http.StatusFound)
 	} else {
 
@@ -76,6 +78,7 @@ func (*AuthController) Dologin(w http.ResponseWriter, r *http.Request) {
 
 func (*AuthController) Logout(w http.ResponseWriter, r *http.Request) {
 	auth.Logout()
+	flash.Success("您已退出登录")
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
@@ -116,12 +119,8 @@ func (*AuthController) DoFindPass(w http.ResponseWriter, r *http.Request) {
 					"Email": email,
 				}, "auth.findpass")
 		} else {
-			fmt.Fprint(w, "发送成功")
-			// msg := []string{
-			// 	"<a>返回首页<a>",
-			// 	"<a>继续登录</a>",
-			// }
-			// view.MsgTemplate(w, view.D{"Msg": msg})
+			flash.Success("邮件已发送")
+			http.Redirect(w, r, "/", http.StatusFound)
 		}
 
 	}

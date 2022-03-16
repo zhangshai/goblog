@@ -17,7 +17,7 @@ func Hash(str string) string {
 // CheckHash 对比明文密码和数据库的哈希值
 func CheckHash(hash, password string) bool {
 
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	err := bcrypt.CompareHashAndPassword([]byte(password), []byte(hash))
 	logger.LogError(err)
 	return err == nil
 }

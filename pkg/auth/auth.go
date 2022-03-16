@@ -42,7 +42,7 @@ func Attempt(email string, password string) error {
 		}
 	}
 	if !_user.ComparePassword(password) {
-		return errors.New("账号不存在或密码错误")
+		return errors.New("密码错误")
 	}
 	session.Put("uid", _user.GetStringID())
 	return nil

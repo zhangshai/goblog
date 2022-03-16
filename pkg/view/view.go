@@ -2,6 +2,7 @@ package view
 
 import (
 	"goblog/pkg/auth"
+	"goblog/pkg/flash"
 	"goblog/pkg/logger"
 	"goblog/pkg/route"
 	"html/template"
@@ -28,6 +29,8 @@ func RenderTemplate(w io.Writer, name string, data D, tplFiles ...string) {
 
 	// 1. 通用模板数据
 	data["isLogined"] = auth.Check()
+	data["loginUser"] = auth.User
+	data["flash"] = flash.All()
 
 	// 4 在 Slice 里新增我们的目标文件
 	allFiles := getTemplateFiles(tplFiles...)
