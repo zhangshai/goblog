@@ -3,11 +3,13 @@ package controllers
 import (
 	"fmt"
 	"goblog/app/models/article"
+	"goblog/app/models/category"
 	"goblog/app/policies"
 	"goblog/app/requests"
 	"goblog/pkg/auth"
 	"goblog/pkg/logger"
 	"goblog/pkg/route"
+	"goblog/pkg/types"
 	"goblog/pkg/view"
 	"net/http"
 )
@@ -44,11 +46,15 @@ func (ac *ArticlesController) Index(w http.ResponseWriter, r *http.Request) {
 
 //创建文章
 func (*ArticlesController) Create(w http.ResponseWriter, r *http.Request) {
+
+	Category, err := category.GetByUserID(auth.UidToString())
+	logger.LogError(err)
 	data := view.D{
-		"Title":   "",
-		"Body":    "",
-		"Article": article.Article{},
-		"Errors":  make(map[string]string),
+		"Title":    "",
+		"Body":     "",
+		"Article":  article.Article{},
+		"Category": Category,
+		"Errors":   make(map[string]string),
 	}
 	view.Render(w, data, "articles.create", "articles._form_field")
 }
@@ -59,17 +65,20 @@ func (*ArticlesController) Store(w http.ResponseWriter, r *http.Request) {
 	currentUser := auth.User()
 	// 1. 初始化数据
 	_article := article.Article{
-		Title:  r.PostFormValue("title"),
-		Body:   r.PostFormValue("body"),
-		UserID: currentUser.ID,
+		Title:      r.PostFormValue("title"),
+		Body:       r.PostFormValue("body"),
+		CategoryID: types.StringToUint64(r.PostFormValue("category_id")),
+		UserID:     currentUser.ID,
 	}
 
 	errors := requests.ValidateArticleForm(_article)
 	if len(errors) != 0 {
-
+		Category, err := category.GetByUserID(auth.UidToString())
+		logger.LogError(err)
 		data := view.D{
-			"Article": _article,
-			"Errors":  errors,
+			"Article":  _article,
+			"Errors":   errors,
+			"Category": Category,
 		}
 		view.Render(w, data, "articles.create", "articles._form_field")
 
@@ -100,9 +109,12 @@ func (ac *ArticlesController) Edit(w http.ResponseWriter, r *http.Request) {
 		if !policies.CanModifyArticle(_article) {
 			ac.ResponseForUnauthorized(w, r)
 		} else {
+			Category, err := category.GetByUserID(auth.UidToString())
+			logger.LogError(err)
 			view.Render(w, view.D{
-				"Article": _article,
-				"Errors":  view.D{},
+				"Article":  _article,
+				"Category": Category,
+				"Errors":   view.D{},
 			}, "articles.edit", "articles._form_field")
 		}
 	}
@@ -125,7 +137,7 @@ func (ac *ArticlesController) Update(w http.ResponseWriter, r *http.Request) {
 		}
 		_article.Title = r.PostFormValue("title")
 		_article.Body = r.PostFormValue("body")
-
+		_article.CategoryID = types.StringToUint64(r.PostFormValue("category_id"))
 		errors := requests.ValidateArticleForm(_article)
 		if len(errors) == 0 {
 			_article.Title = title
@@ -143,9 +155,12 @@ func (ac *ArticlesController) Update(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprint(w, "您没有做任何更改！")
 			}
 		} else {
+			Category, err := category.GetByUserID(auth.UidToString())
+			logger.LogError(err)
 			view.Render(w, view.D{
-				"Article": _article,
-				"Errors":  errors,
+				"Article":  _article,
+				"Errors":   errors,
+				"Category": Category,
 			}, "articles.edit", "articles._form_field")
 		}
 	}

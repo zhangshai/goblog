@@ -7,7 +7,8 @@ import (
 
 type Category struct {
 	models.BaseModel
-	Name string `gorm:"type:varchar(255);not null;" valid:"name"`
+	Name   string `gorm:"type:varchar(255);not null;" valid:"name"`
+	UserID uint64 `gorm:"not null;index"`
 }
 
 func (c Category) Link() string {

@@ -19,6 +19,17 @@ func _getUID() string {
 
 }
 
+func UidToString() string {
+	_uid := session.Get("uid")
+	uid, ok := _uid.(string)
+
+	if ok && len(uid) > 0 {
+		return uid
+	}
+	return ""
+
+}
+
 // User 获取登录用户信息
 func User() user.User {
 	uid := _getUID()

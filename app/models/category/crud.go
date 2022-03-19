@@ -34,3 +34,10 @@ func Get(idstr string) (Category, error) {
 	}
 	return category, nil
 }
+func GetByUserID(uid string) ([]Category, error) {
+	var categories []Category
+	if err := model.DB.Where("user_id = ?", uid).Preload("User").Find(&categories).Error; err != nil {
+		return categories, err
+	}
+	return categories, nil
+}

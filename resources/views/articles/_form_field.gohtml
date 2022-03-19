@@ -1,6 +1,23 @@
 
 {{define "form-fields"}}
   <div class="form-group mt-3">
+    <label for="title">分类</label>
+    <select name="category_id">
+    <option value ="0">--请选择--</option>
+    {{ $categoryID := .Article.CategoryID }}
+    {{with .Category}}
+    {{range $Cate:=.}}
+      <option value ="{{$Cate.ID}}" {{if eq  $Cate.ID $categoryID}}selected{{end}}>{{$Cate.Name}}</option>
+      {{end }}
+    {{end}}
+    </select>
+  {{ with .Errors.categoryid }}
+      <div class="invalid-feedback" style="display:block">
+        {{ . }}
+      </div>
+    {{ end }}
+  </div>
+  <div class="form-group mt-3">
     <label for="title">标题</label>
     <input type="text" class="form-control {{if .Errors.title }}is-invalid {{end}}" name="title" value="{{ .Article.Title }}" required>
     {{ with .Errors.title }}

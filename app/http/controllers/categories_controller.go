@@ -5,6 +5,7 @@ import (
 	"goblog/app/models/article"
 	"goblog/app/models/category"
 	"goblog/app/requests"
+	"goblog/pkg/auth"
 	"goblog/pkg/flash"
 	"goblog/pkg/route"
 	"goblog/pkg/view"
@@ -24,9 +25,11 @@ func (*CategoriesController) Create(w http.ResponseWriter, r *http.Request) {
 // Store 保存文章分类
 func (*CategoriesController) Store(w http.ResponseWriter, r *http.Request) {
 
+	currentUser := auth.User()
 	// 1. 初始化数据
 	_category := category.Category{
-		Name: r.PostFormValue("name"),
+		Name:   r.PostFormValue("name"),
+		UserID: currentUser.ID,
 	}
 
 	// 2. 表单验证
