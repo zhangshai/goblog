@@ -1,0 +1,16 @@
+package category
+
+import (
+	"goblog/pkg/logger"
+	"goblog/pkg/model"
+)
+
+func (categoey *Category) Create() error {
+
+	if err := model.DB.Create(&categoey).Error; err != nil {
+
+		logger.LogError(err)
+		return err
+	}
+	return nil
+}
