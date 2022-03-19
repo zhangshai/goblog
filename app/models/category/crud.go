@@ -14,3 +14,12 @@ func (categoey *Category) Create() error {
 	}
 	return nil
 }
+
+func All() ([]Category, error) {
+
+	var categories []Category
+	if err := model.DB.Find(&categories).Error; err != nil {
+		return categories, err
+	}
+	return categories, nil
+}
