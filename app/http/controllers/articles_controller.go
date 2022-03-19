@@ -5,6 +5,7 @@ import (
 	"goblog/app/models/article"
 	"goblog/app/policies"
 	"goblog/app/requests"
+	"goblog/pkg/auth"
 	"goblog/pkg/logger"
 	"goblog/pkg/route"
 	"goblog/pkg/view"
@@ -31,12 +32,12 @@ func (ac *ArticlesController) Show(w http.ResponseWriter, r *http.Request) {
 // Index 文章列表页
 func (ac *ArticlesController) Index(w http.ResponseWriter, r *http.Request) {
 	//获取结果集
-	articles, err := article.GetAll()
+	articles, pagerData, err := article.GetAll(r, 2)
 	if err != nil {
 		ac.ResponseForSQLError(w, err)
 
 	} else {
-		view.Render(w, view.D{"Articles": articles}, "articles.index", "articles._article_meta")
+		view.Render(w, view.D{"Articles": articles, "PagerData": pagerData}, "articles.index", "articles._article_meta")
 	}
 
 }
@@ -54,10 +55,13 @@ func (*ArticlesController) Create(w http.ResponseWriter, r *http.Request) {
 
 // Store 文章创建页面
 func (*ArticlesController) Store(w http.ResponseWriter, r *http.Request) {
+
+	currentUser := auth.User()
 	// 1. 初始化数据
 	_article := article.Article{
-		Title: r.PostFormValue("title"),
-		Body:  r.PostFormValue("body"),
+		Title:  r.PostFormValue("title"),
+		Body:   r.PostFormValue("body"),
+		UserID: currentUser.ID,
 	}
 
 	errors := requests.ValidateArticleForm(_article)
